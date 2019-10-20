@@ -90,7 +90,7 @@ while(True):
             # checks if it has been paid
             if not already_paid:
 
-                frame = write_contrast(frame, x, y, f'[SMILE TO PAY]', w = w, h = h)
+                frame = write_contrast(frame, x, y, f'[SORRIA PARA PAGAR]', w = w, h = h)
                 frame, smile = detect_smile(gray, frame)
 
                 # pays after the user smiles
@@ -99,14 +99,14 @@ while(True):
 
             # tells the user that the payment was successful over the QR code
             if already_paid:
-                frame = write_contrast(frame, x, y, f'[SUCCESSFUL]', w = w, h = h)
+                frame = write_contrast(frame, x, y, f'[SUCESSO!]', w = w, h = h)
 
         # user instructions
         elif not already_paid:
-            frame = write_contrast(frame, resol_array[0]//2, 50, f'[SHOW YOUR QRCODE]')
+            frame = write_contrast(frame, resol_array[0]//2, 50, f'[MOSTRE SEU QRCODE]')
 
         else:
-            frame = write_contrast(frame, resol_array[0]//2, 50, f'[SUCCESSFULLY PAID]')
+            frame = write_contrast(frame, resol_array[0]//2, 50, f'[PAGO COM SUCESSO!]')
 
             # gets width and height of the largest text
             (label_width, label_height), baseline = cv2.getTextSize(show_text, cv2.FONT_HERSHEY_SIMPLEX, .4, 1)
