@@ -47,23 +47,25 @@ def write_contrast(frame, x, y, text,  w = 0, h = 0, FONT = cv2.FONT_HERSHEY_SIM
 
     return frame
 
-QR_DIR = 'qr_codes'
-if QR_DIR not in os.listdir():
-    os.mkdir(QR_DIR)
-
 FONT_SCALE = .4 # font to print the transaction informations
 
 qr = False # boolean to check if there is a QR Code within the video
 already_paid = False # if qr code had the transaction Id, we could check if it was already paid with the post request
 
 resol_array = (1024, 720) # camera resolution ~ lower is easier for the computer
+minY = resol_array[1]//12
 
 # files with the OpenCv weights for the neural network that check faces and smiles
 face_cascade = cv2.CascadeClassifier('cv2_cascades/haarcascade_frontalface_default.xml')
 smile_cascade = cv2.CascadeClassifier('cv2_cascades/haarcascade_smile.xml')
 
 # start capturing video
+
+recommendation = '12 paes de queijo'
+price = 9.99
+
 cap = cv2.VideoCapture(0)
+start = time.time()
 while(True):
     ret, frame = cap.read()
     # resize the frame so we can save computer energy
@@ -74,65 +76,28 @@ while(True):
         # creates a gray version of the frame to facilitate processing
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # looks for the QR code
-        qr = pyzbar.decode(gray)
-
-        # if the user shows the QR Code to the camera
-        if qr:
-
-            # creates QR code boundaries
-            (x, y, w, h) = qr[0].rect
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
-
-            # saves QR code data
-            data = qr[0].data
-
-            # checks if it has been paid
-            if not already_paid:
-
-                frame = write_contrast(frame, x, y, f'[SORRIA PARA PAGAR]', w = w, h = h)
-                frame, smile = detect_smile(gray, frame)
-
-                # pays after the user smiles
-                if smile:
-                    already_paid = True 
-
-            # tells the user that the payment was successful over the QR code
-            if already_paid:
-                frame = write_contrast(frame, x, y, f'[SUCESSO!]', w = w, h = h)
-
-        # user instructions
-        elif not already_paid:
-            frame = write_contrast(frame, resol_array[0]//2, 50, f'[MOSTRE SEU QRCODE]')
-
+        if time.time() - start > 1/120:
+            frame, smile = detect_smile(gray, frame)
         else:
-            frame = write_contrast(frame, resol_array[0]//2, 50, f'[PAGO COM SUCESSO!]')
+            start = time.time()
 
-            # gets width and height of the largest text
-            (label_width, label_height), baseline = cv2.getTextSize(show_text, cv2.FONT_HERSHEY_SIMPLEX, .4, 1)
+        if recommendation and not already_paid:
+            frame = write_contrast(
+                frame, 
+                resol_array[0]//2,
+                resol_array[1], 
+                f'[GOSTARIA DE COMPRAR {recommendation.upper()} por RS{round(price, 2)}?]') 
 
-            # creates a big rectangle to create constrast for the transaction informations
-            frame = cv2.rectangle(
-                frame,
-                (0, resol_array[1] - len(l_keys) * (label_height + 5)),
-                (label_width + 5, resol_array[1]),
-                (255, 255, 255),
-                -1)
+        # Maintain the success message
+        if smile and not already_paid:
+            already_paid = smile
 
-            # prints the transaction information for the user
-            for i, key in enumerate(l_keys):
-                frame = cv2.putText(
-                    frame,
-                    f"{key}: {d_req[key]}",
-                    (5, resol_array[1] - i * (label_height + 5) - 3),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    .4,
-                    (0, 0, 0),
-                    1,
-                    cv2.LINE_AA
-                    )
+        # write help messages for the user - either success or smile to pay
+        if already_paid:
+            frame = write_contrast(frame, resol_array[0]//2, minY, f'[SUCESSO]')
+        else:
+            frame = write_contrast(frame, resol_array[0]//2, minY, f'[SORRIA PARA PAGAR]')
 
-        # show the modified frame for the user
         cv2.imshow('frame', frame)
 
         # quits if the Q key is pressed
